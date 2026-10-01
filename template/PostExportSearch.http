@@ -1,0 +1,7 @@
+### 1. Exportar a busca (mesmos query params do GET /bids; page e rows são ignorados, sai até 5.000 linhas)
+POST {{host}}/bids/export?term=limpeza&uf=SP&modalities=6&sort=publication_date&sort_order=desc
+Authorization: Bearer {{auth_token}}
+
+### 2. Acompanhar o runner (document_url chega quando finished = true)
+GET {{host}}/bids/export/runner/{{runner_id}}
+Authorization: Bearer {{auth_token}}

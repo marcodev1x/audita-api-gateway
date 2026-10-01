@@ -1,0 +1,2 @@
+GET {{host}}/license/83021808000182/2026/261
+Authorization: Bearer {{auth_token}}

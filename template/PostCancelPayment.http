@@ -1,0 +1,32 @@
+### Cancelamento de pagamento / assinatura
+
+### 1. Caso principal — cancela a assinatura ativa (pagamento APPROVED)
+POST {{host}}/billings/payment/68f2c1a94b3d0e1a77c9d512/cancel
+Authorization: Bearer {{auth_token}}
+
+### 2. Cancela um Pix/boleto emitido e ainda não pago (PENDING)
+POST {{host}}/billings/payment/68f2c1a94b3d0e1a77c9d513/cancel
+Authorization: Bearer {{auth_token}}
+
+### 3. Erro esperado 409 — pagamento já cancelado antes
+POST {{host}}/billings/payment/68f2c1a94b3d0e1a77c9d514/cancel
+Authorization: Bearer {{auth_token}}
+
+### 4. Erro esperado 403 — pagamento de outro usuário
+POST {{host}}/billings/payment/68f2c1a94b3d0e1a77c9d515/cancel
+Authorization: Bearer {{auth_token}}
+
+### 5. Erro esperado 404 — id que não existe na coleção
+POST {{host}}/billings/payment/000000000000000000000000/cancel
+Authorization: Bearer {{auth_token}}
+
+### 6. Erro esperado 400 — id fora do formato ObjectID
+POST {{host}}/billings/payment/nao-e-um-objectid/cancel
+Authorization: Bearer {{auth_token}}
+
+### 7. Erro esperado 401 — sem token
+POST {{host}}/billings/payment/68f2c1a94b3d0e1a77c9d512/cancel
+
+### 8. Conferência — a lista deve trazer o pagamento com status 6 (CANCELLED)
+GET {{host}}/billings/payments
+Authorization: Bearer {{auth_token}}

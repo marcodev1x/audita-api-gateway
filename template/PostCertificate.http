@@ -1,0 +1,189 @@
+### Certidões — CRUD completo
+#
+# POST   /certificates       cria (multipart, com arquivo ou url)
+# GET    /certificates       lista da organização do token
+# GET    /certificates/{id}  uma certidão
+# PATCH  /certificates/{id}  edita por update_mask
+# DELETE /certificates/{id}  remove
+#
+# Todas exigem token. Escopos: `certificates:read`, `certificates:write`,
+# `certificates:delete`. Plano: qualquer um que não seja Free.
+#
+# A organização NÃO vai no corpo: sai do `client_id` do token, igual ao
+# whitelabel. Mandar organization_id aqui não tem efeito.
+#
+# O POST é multipart porque aceita o arquivo. O gateway valida ANTES de subir:
+#   tamanho     máximo 12 MB, lido do header do multipart. Recusa devolve 413
+#   tipo        detectado pelos 512 primeiros bytes (http.DetectContentType),
+#               não pelo Content-Type que o cliente diz. Só passa
+#               application/pdf, image/png e image/jpeg. Recusa devolve 415
+#   vazio       arquivo de 0 byte é recusado com 400
+# Passando, o arquivo vai para o CDN e a URL devolvida é o que fica gravado.
+#
+# Alternativa sem upload: mandar `url` em vez de `file`, para quem já hospeda
+# a certidão em outro lugar. Um dos dois é obrigatório.
+#
+# `type` é enum protobuf sem UnmarshalJSON, então aceita apenas NÚMERO:
+#   1 Federal | 2 FGTS | 3 Trabalhista | 4 Estadual | 5 Municipal
+#   6 Falência | 7 Capacidade técnica | 8 Balanço | 9 Contrato social
+#   10 Procuração | 11 SICAF | 99 Outra
+#
+# `expires_at` em RFC 3339 COM fuso. "2027-01-01" sozinho devolve 400.
+
+### 1. Criar enviando o PDF
+POST {{host}}/certificates
+Authorization: Bearer {{auth_token}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="title"
+
+Certidão Negativa de Débitos Federais
+--WebAppBoundary
+Content-Disposition: form-data; name="type"
+
+1
+--WebAppBoundary
+Content-Disposition: form-data; name="document_cnpj"
+
+11222333000181
+--WebAppBoundary
+Content-Disposition: form-data; name="expires_at"
+
+2027-01-01T00:00:00-03:00
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="cnd-federal.pdf"
+Content-Type: application/pdf
+
+< ./cnd-federal.pdf
+--WebAppBoundary--
+
+### 2. Criar apontando para uma url já hospedada
+POST {{host}}/certificates
+Authorization: Bearer {{auth_token}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="title"
+
+Certidão de Regularidade do FGTS
+--WebAppBoundary
+Content-Disposition: form-data; name="type"
+
+2
+--WebAppBoundary
+Content-Disposition: form-data; name="expires_at"
+
+2026-12-15T00:00:00-03:00
+--WebAppBoundary
+Content-Disposition: form-data; name="url"
+
+https://pub-7e2a2f7ef2984245b21285c389086219.r2.dev/public/crf-fgts.pdf
+--WebAppBoundary--
+
+### 3. Listar tudo da organização
+GET {{host}}/certificates
+Authorization: Bearer {{auth_token}}
+
+### 4. Listar só as trabalhistas
+GET {{host}}/certificates?type=3
+Authorization: Bearer {{auth_token}}
+
+### 5. Listar por CNPJ
+GET {{host}}/certificates?document_cnpj=11222333000181
+Authorization: Bearer {{auth_token}}
+
+### 6. Buscar uma
+GET {{host}}/certificates/{{certificate_id}}
+Authorization: Bearer {{auth_token}}
+
+### 7. Editar a validade e o título
+PATCH {{host}}/certificates/{{certificate_id}}
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "title": "Certidão Negativa de Débitos Federais (renovada)",
+  "expires_at": "2027-06-30T00:00:00-03:00",
+  "update_mask": ["title", "expires_at"]
+}
+
+### 8. Trocar só o tipo
+PATCH {{host}}/certificates/{{certificate_id}}
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "type": 99,
+  "update_mask": ["type"]
+}
+
+### 9. Remover
+DELETE {{host}}/certificates/{{certificate_id}}
+Authorization: Bearer {{auth_token}}
+
+### 10. Erro esperado 400 — sem arquivo e sem url
+POST {{host}}/certificates
+Authorization: Bearer {{auth_token}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="title"
+
+Sem anexo
+--WebAppBoundary
+Content-Disposition: form-data; name="expires_at"
+
+2027-01-01T00:00:00-03:00
+--WebAppBoundary--
+
+### 11. Erro esperado 400 — data sem fuso
+POST {{host}}/certificates
+Authorization: Bearer {{auth_token}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="title"
+
+Data crua
+--WebAppBoundary
+Content-Disposition: form-data; name="expires_at"
+
+2027-01-01
+--WebAppBoundary
+Content-Disposition: form-data; name="url"
+
+https://exemplo.com/cnd.pdf
+--WebAppBoundary--
+
+### 12. Erro esperado 415 — tipo de arquivo recusado
+POST {{host}}/certificates
+Authorization: Bearer {{auth_token}}
+Content-Type: multipart/form-data; boundary=WebAppBoundary
+
+--WebAppBoundary
+Content-Disposition: form-data; name="title"
+
+Executável disfarçado
+--WebAppBoundary
+Content-Disposition: form-data; name="expires_at"
+
+2027-01-01T00:00:00-03:00
+--WebAppBoundary
+Content-Disposition: form-data; name="file"; filename="cnd.pdf"
+Content-Type: application/pdf
+
+< ./payload.exe
+--WebAppBoundary--
+
+### 13. Erro esperado 400 — patch sem update_mask
+PATCH {{host}}/certificates/{{certificate_id}}
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "title": "Sem máscara"
+}
+
+### 14. Erro esperado 401 — sem token
+GET {{host}}/certificates

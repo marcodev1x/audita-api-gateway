@@ -1,0 +1,24 @@
+### 1. Exportar todas as certidões da organização
+POST {{host}}/certificates/export
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{}
+
+### 2. Exportar só as trabalhistas de um CNPJ
+POST {{host}}/certificates/export
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "type": 3,
+  "document_cnpj": "11222333000181"
+}
+
+### 3. Acompanhar o runner (document_url chega quando finished = true)
+GET {{host}}/certificates/export/runner/{{runner_id}}
+Authorization: Bearer {{auth_token}}
+
+### 4. Listar paginado
+GET {{host}}/certificates?page=1&rows=20&type=1
+Authorization: Bearer {{auth_token}}

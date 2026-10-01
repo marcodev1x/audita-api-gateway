@@ -1,0 +1,132 @@
+### Cupons — criar e validar
+#
+# POST /coupons              cria o cupom
+# GET  /coupons/search/{code} valida o cupom para o usuário do token
+#
+# Criar exige token com escopo `coupons:write` e role Admin (2) ou
+# SuperAdmin (3). Validar exige apenas `coupons:read`, porque quem valida é o
+# cliente no checkout.
+#
+# Datas em RFC 3339 COM fuso. O serviço faz `time.Parse(time.RFC3339, ...)` e
+# devolve 400 em qualquer outro formato — "2026-09-04" sozinho não passa.
+# Escrever `-03:00` em vez de `Z` evita o cupom abrir às 21h do dia anterior.
+#
+# Campos e o que cada um faz de fato:
+#   discount_percentage  1..100, o desconto
+#   max_int_cents        teto do desconto em centavos; 0 = sem teto
+#   max_uses             usos totais; 0 = ilimitado
+#   active               false desliga sem apagar o histórico
+#   objective            texto livre, só para você se achar depois
+#   for_first_buy        GRAVADO MAS NUNCA LIDO. Nenhuma regra em `coupons`
+#                        ou `billings` consulta esse campo hoje, então ele não
+#                        restringe nada. Deixe false até existir a regra.
+#
+# Sobre a renovação: com cartão, o desconto entra na assinatura recorrente e
+# vale em TODA cobrança, não só na primeira. Um cupom de lançamento generoso
+# é uma decisão sobre a receita dos próximos anos, não sobre a primeira venda.
+
+### 1. Lançamento — 15% de hoje até 01/01/2027
+POST {{host}}/coupons
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "code": "LANÇAMENTO15",
+  "discount_percentage": 15,
+  "max_int_cents": 0,
+  "start_at": "2026-09-04T00:00:00-03:00",
+  "end_at": "2027-01-01T23:59:59-03:00",
+  "active": true,
+  "max_uses": 0,
+  "objective": "Lancamento",
+  "for_first_buy": false
+}
+
+### 2. Conferência — valida o cupom recém-criado
+GET {{host}}/coupons/search/LANCAMENTO15
+Authorization: Bearer {{auth_token}}
+
+### 3. Variante com teto — 15% limitado a R$ 50,00 de desconto
+POST {{host}}/coupons
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "code": "LANCAMENTO15TETO",
+  "discount_percentage": 15,
+  "max_int_cents": 5000,
+  "start_at": "2026-09-04T00:00:00-03:00",
+  "end_at": "2027-01-01T23:59:59-03:00",
+  "active": true,
+  "max_uses": 0,
+  "objective": "Lancamento com teto",
+  "for_first_buy": false
+}
+
+### 4. Variante com limite de resgates — os 100 primeiros
+POST {{host}}/coupons
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "code": "LANCAMENTO15X100",
+  "discount_percentage": 15,
+  "max_int_cents": 0,
+  "start_at": "2026-09-04T00:00:00-03:00",
+  "end_at": "2027-01-01T23:59:59-03:00",
+  "active": true,
+  "max_uses": 100,
+  "objective": "Lancamento, 100 primeiros",
+  "for_first_buy": false
+}
+
+### 5. Erro esperado 400 — desconto fora de 1..100
+POST {{host}}/coupons
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "code": "INVALIDO",
+  "discount_percentage": 0,
+  "start_at": "2026-09-04T00:00:00-03:00",
+  "end_at": "2027-01-01T23:59:59-03:00",
+  "active": true
+}
+
+### 6. Erro esperado 400 — data sem fuso
+POST {{host}}/coupons
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "code": "SEMFUSO",
+  "discount_percentage": 15,
+  "start_at": "2026-09-04",
+  "end_at": "2027-01-01",
+  "active": true
+}
+
+### 7. Erro esperado 403 — token sem role de admin
+POST {{host}}/coupons
+Authorization: Bearer {{business_token}}
+Content-Type: application/json
+
+{
+  "code": "SEMPERMISSAO",
+  "discount_percentage": 15,
+  "start_at": "2026-09-04T00:00:00-03:00",
+  "end_at": "2027-01-01T23:59:59-03:00",
+  "active": true
+}
+
+### 8. Erro esperado 401 — sem token
+POST {{host}}/coupons
+Content-Type: application/json
+
+{
+  "code": "SEMTOKEN",
+  "discount_percentage": 15,
+  "start_at": "2026-09-04T00:00:00-03:00",
+  "end_at": "2027-01-01T23:59:59-03:00",
+  "active": true
+}

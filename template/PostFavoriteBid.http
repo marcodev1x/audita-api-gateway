@@ -1,0 +1,10 @@
+POST {{host}}/favorite-bid
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "process_id": "12345",
+  "title": "Titulo teste",
+  "content": "Teste de conteúdo devidamente descritivo",
+  "sequence": 123
+}

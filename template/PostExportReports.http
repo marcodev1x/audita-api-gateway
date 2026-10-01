@@ -1,0 +1,22 @@
+### 1. Exportar um mês
+POST {{host}}/reports/export
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "publication_month": 9,
+  "publication_year": 2026
+}
+
+### 2. Exportar o ano inteiro
+POST {{host}}/reports/export
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "publication_year": 2026
+}
+
+### 3. Acompanhar o runner (document_url chega quando finished = true)
+GET {{host}}/reports/export/runner/{{runner_id}}
+Authorization: Bearer {{auth_token}}

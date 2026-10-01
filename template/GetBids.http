@@ -1,0 +1,2 @@
+GET {{host}}/bids?rows=30&sphere=M&page=1&sort-order=desc
+Authorization: Bearer {{auth_token}}

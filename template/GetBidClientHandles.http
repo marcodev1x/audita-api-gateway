@@ -1,0 +1,2 @@
+GET {{host}}/bids/6a4aa97838d8471ec0b8c46f/handles
+Authorization: Bearer {{auth_token}}

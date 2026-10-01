@@ -1,0 +1,130 @@
+### Cadastro de usuário por um business
+#
+# POST /clients/business  (o GET no mesmo path lista os usuários do business)
+#
+# Exige token de um cliente com role Business e escopo `client:create`.
+#
+# `owner_id` NÃO vai no corpo: é resolvido a partir do token, igual ao GET.
+# Mandar owner_id aqui não tem efeito.
+#
+# `role` é enum protobuf sem UnmarshalJSON, então aceita apenas NÚMERO:
+#   0 None | 1 User | 2 Admin | 3 SuperAdmin | 4 Business | 5 Manager
+# Passar a string ("User") devolve 400 no decode.
+#
+# Senha:
+#   generate_randomic_password = true  -> o serviço gera e `password` é ignorado
+#   generate_randomic_password = false -> `password` é obrigatório, mínimo 8 chars
+#
+# send_email_access = true dispara o e-mail com as credenciais de acesso
+# (template business_client_created no mailer).
+
+### 1. Caso principal — senha gerada pelo sistema e e-mail de acesso enviado
+POST {{host}}/clients/business
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Maria Souza Andrade",
+  "email": "roxajin239@primetor.com",
+  "role": 1,
+  "generate_randomic_password": true,
+  "send_email_access": true
+}
+
+### 2. Senha definida manualmente, com e-mail de acesso
+POST {{host}}/clients/business
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Carlos Eduardo Lima",
+  "email": "carlos.lima@example.com",
+  "password": "senhaProvisoria123!",
+  "role": 1,
+  "generate_randomic_password": false,
+  "send_email_access": true
+}
+
+### 3. Cadastro silencioso — sem disparar e-mail
+POST {{host}}/clients/business
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Joana Ribeiro Alves",
+  "email": "joana.alves@example.com",
+  "password": "senhaProvisoria123!",
+  "role": 1,
+  "generate_randomic_password": false,
+  "send_email_access": false
+}
+
+### 4. Usuário com papel de Manager, vinculado a um gestor
+POST {{host}}/clients/business
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Rafael Monteiro Dias",
+  "email": "rafael.dias@example.com",
+  "role": 5,
+  "manager_id": "6a73c836d9d0d3892ccc3a8d",
+  "generate_randomic_password": true,
+  "send_email_access": true
+}
+
+### 5. Erro esperado 400 — nome com menos de 5 caracteres
+POST {{host}}/clients/business
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Ana",
+  "email": "ana@example.com",
+  "role": 1,
+  "generate_randomic_password": true,
+  "send_email_access": false
+}
+
+### 6. Erro esperado 400 — e-mail inválido
+POST {{host}}/clients/business
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Pedro Henrique Castro",
+  "email": "pedro-arroba-example",
+  "role": 1,
+  "generate_randomic_password": true,
+  "send_email_access": false
+}
+
+### 7. Erro esperado 400 — senha curta sem geração automática
+POST {{host}}/clients/business
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Luciana Farias Nunes",
+  "email": "luciana.nunes@example.com",
+  "password": "123",
+  "role": 1,
+  "generate_randomic_password": false,
+  "send_email_access": false
+}
+
+### 8. Erro esperado 401 — sem token
+POST {{host}}/clients/business
+Content-Type: application/json
+
+{
+  "name": "Sem Autenticacao Teste",
+  "email": "sem.token@example.com",
+  "role": 1,
+  "generate_randomic_password": true,
+  "send_email_access": false
+}
+
+### 9. Conferência — lista os usuários do business após o cadastro
+GET {{host}}/clients/business
+Authorization: Bearer {{auth_token}}

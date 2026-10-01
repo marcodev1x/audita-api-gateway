@@ -1,0 +1,2 @@
+GET {{host}}/analysis/runner/6aac47260094aa28a8eff6a1
+Authorization: Bearer {{auth_token}}

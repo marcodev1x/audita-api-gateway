@@ -1,0 +1,2 @@
+GET {{host}}/holding-bids?publication_month=6
+Authorization: Bearer {{auth_token}}

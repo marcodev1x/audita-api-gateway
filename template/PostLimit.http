@@ -1,0 +1,121 @@
+### Limites — CRUD (super admin) e consumo (qualquer usuário)
+#
+# POST   /limits        cria um limite
+# GET    /limits        lista paginada (filtros: organization_id, owner_id, payer_role)
+# PATCH  /limits/{id}   edita por update_mask (quantity, period, unlimited)
+# DELETE /limits/{id}   remove
+# GET    /consumes      limites em vigor + uso atual do token (sem paginação)
+#
+# /limits exige role SuperAdmin (3) e escopo `limits:write` / `limits:read`
+# (o `*` do super admin já cobre). /consumes exige só `client:read`.
+#
+# Um limite vale para um payer_role e um type. Quem ele cobre depende de
+# organization_id e owner_id, e o mais específico ganha:
+#   owner_id preenchido               só aquela empresa (CNPJ)
+#   só organization_id                todas as empresas da organização
+#   nenhum dos dois                   padrão do plano para todo mundo
+#
+# Sem limite cadastrado, o consumo é ILIMITADO. Então cadastre o padrão de
+# cada plano antes de contar com o bloqueio.
+#
+# Enums são protobuf sem UnmarshalJSON, então aceitam apenas NÚMERO:
+#   payer_role  0 Free | 1 Basic | 2 Pro (Comando) | 3 Enterprise | 4 FreeTasting
+#   type        1 Análise (IA de documento) | 2 Copilot | 3 Membros da equipe
+#   period      0 nunca zera (membros) | 1 diário | 2 mensal
+#
+# Estourar o limite devolve 409 com code `limit_reached`.
+
+### 1. Padrão do plano Comando — 10 membros de equipe
+POST {{host}}/limits
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "payer_role": 2,
+  "type": 3,
+  "quantity": 10,
+  "period": 0
+}
+
+### 2. Padrão do plano Comando — 30 análises por mês
+POST {{host}}/limits
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "payer_role": 2,
+  "type": 1,
+  "quantity": 30,
+  "period": 2
+}
+
+### 3. Padrão do plano Comando — 50 perguntas ao copilot por dia
+POST {{host}}/limits
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "payer_role": 2,
+  "type": 2,
+  "quantity": 50,
+  "period": 1
+}
+
+### 4. Exceção para uma empresa — equipe ilimitada
+POST {{host}}/limits
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "owner_id": "6a73c836d9d0d3892ccc3a8d",
+  "payer_role": 2,
+  "type": 3,
+  "unlimited": true
+}
+
+### 5. Lista os limites do plano Comando
+GET {{host}}/limits?payer_role=2&page=1&rows=20
+Authorization: Bearer {{auth_token}}
+
+### 6. Sobe o limite de membros para 15
+PATCH {{host}}/limits/{{limit_id}}
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "quantity": 15,
+  "update_mask": ["quantity"]
+}
+
+### 7. Remove o limite
+DELETE {{host}}/limits/{{limit_id}}
+Authorization: Bearer {{auth_token}}
+
+### 8. Consumo do token — limite em vigor e uso de cada tipo
+GET {{host}}/consumes
+Authorization: Bearer {{auth_token}}
+
+### 9. Consumo só de membros
+GET {{host}}/consumes?type=3
+Authorization: Bearer {{auth_token}}
+
+### 10. Erro esperado 400 — type ausente
+POST {{host}}/limits
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "payer_role": 2,
+  "quantity": 10
+}
+
+### 11. Erro esperado 403 — token sem role de super admin
+POST {{host}}/limits
+Authorization: Bearer {{business_token}}
+Content-Type: application/json
+
+{
+  "payer_role": 2,
+  "type": 3,
+  "quantity": 10
+}

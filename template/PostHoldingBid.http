@@ -1,0 +1,7 @@
+POST {{host}}/holding-bid
+Content-Type: application/json
+Authorization: Bearer {{auth_token}}
+
+{
+  "bid_id": "6a401d8beda71b786cb57135"
+}

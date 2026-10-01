@@ -1,0 +1,2 @@
+GET {{host}}/favorite-bids?rows=30&page=1&cursor=&sort=createdAt&sort-order=desC
+Authorization: Bearer {{auth_token}}

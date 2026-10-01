@@ -1,0 +1,2 @@
+GET {{host}}/billings/plans
+Authorization: Bearer {{auth_token}}

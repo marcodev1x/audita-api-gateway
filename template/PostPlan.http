@@ -1,0 +1,268 @@
+### Catálogo real (espelha audita-web/src/features/billing/plans.ts)
+#
+# `PlanComplete.metadata` é `map<string, string>`: só aceita valores string,
+# nada aninhado. Os diferenciais entram como chaves numeradas, começando em 1
+# e sem buracos, para o front iterar até a chave não existir mais:
+#
+#   benefit_N           -> o que o plano TEM
+#   non_have_benefit_N  -> o que o plano NÃO tem (renderiza riscado/apagado)
+#   highlight_benefit_N -> opcional, "true" marca a linha que vende o tier
+#                          (N referencia benefit_N ou non_have_benefit_N)
+#
+# Para adicionar um benefício depois: basta somar +1 no último N. Nada no
+# front precisa mudar.
+#
+# `PlanComplete` tem um único price_in_cents + billing_interval, então cada
+# ciclo do front (monthly/yearly) é um plano próprio. `metadata.family`
+# agrupa os dois ciclos do mesmo tier e `metadata.cycle` diz qual é qual.
+#
+# `metadata.payer_role` é o tier que o pagamento aprovado concede no client
+# (enum PayerRole: Free | Basic | Pro | Enterprise). Sem ele, o client cai no
+# fallback pelo `type` do plano — PLAN_TYPE_PAID vira Basic.
+#
+# O campo `provider` foi omitido de propósito: o id do preapproval_plan do
+# Mercado Pago só existe depois de criado lá. Preencha com o id real antes
+# de cobrar — um id errado cobra o valor errado.
+
+### 1. Essencial — mensal (R$ 39,90/mês)
+POST {{host}}/billings/plans
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Essencial",
+  "slug": "essencial-mensal",
+  "description": "Encontre e acompanhe licitações sem planilha.",
+  "price_in_cents": 3990,
+  "currency": "BRL",
+  "billing_interval": 3,
+  "billing_interval_count": 1,
+  "trial_days": 7,
+  "type": 2,
+  "is_public": true,
+  "discount_percentage": 0,
+  "callback_url": "https://api.audita.com/api/billings/webhooks/plans",
+  "metadata": {
+    "family": "essencial",
+    "cycle": "monthly",
+    "payer_role": "Basic",
+    "tier_order": "1",
+    "recommended": "false",
+    "upsell": "Sem a análise por IA, cada edital leva de 20 a 40 minutos de leitura manual.",
+    "benefit_1": "Busca completa no PNCP, com filtros por objeto, órgão e valor",
+    "benefit_2": "Gestão das suas licitações com prazos e ciclo de vida",
+    "benefit_3": "Favoritos e alertas de encerramento",
+    "benefit_4": "Boletim por e-mail",
+    "benefit_5": "1 usuário",
+    "non_have_benefit_1": "Análise de edital por IA",
+    "non_have_benefit_2": "Automações e monitoramento contínuo",
+    "non_have_benefit_3": "Logo, cores e domínio da sua empresa",
+    "non_have_benefit_4": "3 assentos extras para a equipe, com cotas compartilhadas",
+    "highlight_non_have_benefit_1": "true",
+    "highlight_non_have_benefit_2": "true"
+  }
+}
+
+### 2. Essencial — anual (R$ 399,00/ano, 2 meses grátis)
+POST {{host}}/billings/plans
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Essencial",
+  "slug": "essencial-anual",
+  "description": "Encontre e acompanhe licitações sem planilha.",
+  "price_in_cents": 39900,
+  "currency": "BRL",
+  "billing_interval": 6,
+  "billing_interval_count": 1,
+  "trial_days": 7,
+  "type": 2,
+  "is_public": true,
+  "discount_percentage": 17,
+  "callback_url": "https://api.audita.com/api/billings/webhooks/plans",
+  "metadata": {
+    "family": "essencial",
+    "cycle": "yearly",
+    "payer_role": "Basic",
+    "tier_order": "1",
+    "recommended": "false",
+    "monthly_equivalent_in_cents": "3325",
+    "yearly_savings_in_cents": "7980",
+    "upsell": "Sem a análise por IA, cada edital leva de 20 a 40 minutos de leitura manual.",
+    "benefit_1": "Busca completa no PNCP, com filtros por objeto, órgão e valor",
+    "benefit_2": "Gestão das suas licitações com prazos e ciclo de vida",
+    "benefit_3": "Favoritos e alertas de encerramento",
+    "benefit_4": "Boletim por e-mail",
+    "benefit_5": "1 usuário",
+    "non_have_benefit_1": "Análise de edital por IA",
+    "non_have_benefit_2": "Automações e monitoramento contínuo",
+    "non_have_benefit_3": "Logo, cores e domínio da sua empresa",
+    "non_have_benefit_4": "3 assentos extras para a equipe, com cotas compartilhadas",
+    "highlight_non_have_benefit_1": "true",
+    "highlight_non_have_benefit_2": "true"
+  }
+}
+
+### 3. Comando — mensal (R$ 89,90/mês) — plano recomendado
+POST {{host}}/billings/plans
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Comando",
+  "slug": "comando-mensal",
+  "description": "A operação inteira, com a IA lendo os editais por você.",
+  "price_in_cents": 8990,
+  "currency": "BRL",
+  "billing_interval": 3,
+  "billing_interval_count": 1,
+  "trial_days": 7,
+  "type": 2,
+  "is_public": true,
+  "discount_percentage": 0,
+  "callback_url": "https://api.audita.com/api/billings/webhooks/plans",
+  "metadata": {
+    "family": "comando",
+    "cycle": "monthly",
+    "payer_role": "Pro",
+    "tier_order": "2",
+    "recommended": "true",
+    "benefit_1": "Tudo do Essencial",
+    "benefit_2": "3 assentos extras para a sua equipe, sem custo por usuário",
+    "benefit_3": "Cotas, marca, licitações e boletins compartilhados pela equipe",
+    "benefit_4": "Automações com palavras-chave próprias em cada assento",
+    "benefit_5": "Análise de edital por IA, com score de aderência e riscos",
+    "benefit_6": "Copiloto de IA para tirar dúvidas de licitação na hora, com base na Lei 14.133",
+    "benefit_7": "Controle de certidões: federal, estadual, municipal, FGTS, CNDT e falência",
+    "benefit_8": "Aviso 15 dias antes de cada certidão vencer",
+    "benefit_9": "Relatórios de participação e valor em disputa",
+    "benefit_10": "Logo, cores e identidade da sua empresa na plataforma",
+    "benefit_11": "Suporte prioritário",
+    "highlight_benefit_2": "true",
+    "highlight_benefit_5": "true",
+    "highlight_benefit_6": "true"
+  }
+}
+
+### 4. Comando — anual (R$ 899,00/ano, 2 meses grátis)
+POST {{host}}/billings/plans
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Comando",
+  "slug": "comando-anual",
+  "description": "A operação inteira, com a IA lendo os editais por você.",
+  "price_in_cents": 89990,
+  "currency": "BRL",
+  "billing_interval": 6,
+  "billing_interval_count": 1,
+  "trial_days": 7,
+  "type": 2,
+  "is_public": true,
+  "discount_percentage": 17,
+  "callback_url": "https://api.audita.com/api/billings/webhooks/plans",
+  "metadata": {
+    "family": "comando",
+    "cycle": "yearly",
+    "payer_role": "Pro",
+    "tier_order": "2",
+    "recommended": "true",
+    "monthly_equivalent_in_cents": "7492",
+    "yearly_savings_in_cents": "17980",
+    "benefit_1": "Tudo do Essencial",
+    "benefit_2": "3 assentos extras para a sua equipe, sem custo por usuário",
+    "benefit_3": "Cotas, marca, licitações e boletins compartilhados pela equipe",
+    "benefit_4": "Automações com palavras-chave próprias em cada assento",
+    "benefit_5": "Análise de edital por IA, com score de aderência e riscos",
+    "benefit_6": "Copiloto de IA para tirar dúvidas de licitação na hora, com base na Lei 14.133",
+    "benefit_7": "Controle de certidões: federal, estadual, municipal, FGTS, CNDT e falência",
+    "benefit_8": "Aviso 15 dias antes de cada certidão vencer",
+    "benefit_9": "Relatórios de participação e valor em disputa",
+    "benefit_10": "Logo, cores e identidade da sua empresa na plataforma",
+    "benefit_11": "Suporte prioritário",
+    "highlight_benefit_2": "true",
+    "highlight_benefit_5": "true",
+    "highlight_benefit_6": "true"
+  }
+}
+
+### 5. Enterprise — âncora, sem preço público (fecha por contato)
+POST {{host}}/billings/plans
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Enterprise",
+  "slug": "enterprise",
+  "description": "Para holdings e assessorias que operam em volume.",
+  "price_in_cents": 0,
+  "currency": "BRL",
+  "billing_interval": 6,
+  "billing_interval_count": 1,
+  "trial_days": 0,
+  "type": 3,
+  "is_public": true,
+  "discount_percentage": 0,
+  "callback_url": "",
+  "metadata": {
+    "family": "enterprise",
+    "cycle": "custom",
+    "payer_role": "Enterprise",
+    "tier_order": "3",
+    "recommended": "false",
+    "contact_only": "true",
+    "benefit_1": "Múltiplas empresas sob um contrato",
+    "benefit_2": "Integração via API com seu ERP",
+    "benefit_3": "Onboarding e treinamento da equipe",
+    "benefit_4": "SLA e gerente de conta dedicado"
+  }
+}
+
+### Template genérico — todos os campos do PlanComplete
+POST {{host}}/billings/plans
+Authorization: Bearer {{auth_token}}
+Content-Type: application/json
+
+{
+  "name": "Plan Test",
+  "slug": "plan-test",
+  "description": "Plano de teste com todos os campos do PlanComplete preenchidos.",
+  "price_in_cents": 399000,
+  "currency": "BRL",
+  "billing_interval": "BILLING_INTERVAL_MONTHLY",
+  "billing_interval_count": 1,
+  "trial_days": 7,
+  "type": "PLAN_TYPE_PAID",
+  "status": "PLAN_STATUS_ACTIVE",
+  "is_public": true,
+  "discount_percentage": 10,
+  "callback_url": "https://api.audita.com/api/billings/webhooks/plans",
+  "provider": [
+    {
+      "id": "mp_plan_0001",
+      "provider": "PAYMENT_PROVIDER_MERCADO_PAGO"
+    }
+  ],
+  "metadata": {
+    "origin": "http-client",
+    "environment": "dev"
+  }
+}
+
+### Valores aceitos nos enums
+#
+# billing_interval: BILLING_INTERVAL_UNSPECIFIED | BILLING_INTERVAL_DAILY | BILLING_INTERVAL_WEEKLY
+#                   BILLING_INTERVAL_MONTHLY | BILLING_INTERVAL_QUARTERLY
+#                   BILLING_INTERVAL_SEMIANNUALLY | BILLING_INTERVAL_YEARLY
+#
+# type:             PLAN_TYPE_UNSPECIFIED | PLAN_TYPE_FREE | PLAN_TYPE_PAID | PLAN_TYPE_ENTERPRISE
+#
+# status:           PLAN_STATUS_UNSPECIFIED | PLAN_STATUS_DRAFT | PLAN_STATUS_ACTIVE
+#                   PLAN_STATUS_INACTIVE | PLAN_STATUS_ARCHIVED
+#
+# provider.provider: PAYMENT_PROVIDER_UNSPECIFIED | PAYMENT_PROVIDER_MERCADO_PAGO
+#                    PAYMENT_PROVIDER_STRIPE | PAYMENT_PROVIDER_ASAAS | PAYMENT_PROVIDER_PAGARME
+#
+# Campos gerenciados pelo servidor (id, created_at, updated_at) foram omitidos do corpo.

@@ -1,0 +1,2 @@
+GET {{host}}/clients/scopes?rows=10&page=1&sort-order=desc
+Authorization: Bearer {{auth_token}}
